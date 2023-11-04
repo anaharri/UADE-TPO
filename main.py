@@ -57,7 +57,7 @@ def registrarProveedor():
 
     if buscarRegistro(archivo, nuevoCUIT) == False:
         # las columnas del CSV son: CUIT, nombre, estado
-        nuevoRegistro = str(nuevoCUIT) + "," + nuevoNombre + "," + "1"
+        nuevoRegistro = str(nuevoCUIT) + "|" + nuevoNombre + "|" + "1"
         archivo.write(nuevoRegistro + "\n")
         archivo.close()
         print("Nuevo proveedor registrado")
@@ -69,7 +69,7 @@ def borrarProveedor(CUIT):
     pass
 
 
-def modificarProveedor(CUIT, nombre):
+def modificarProveedor():
     # acá el archivo se tiene que abrir en modo "r+"
     # para que te permita leer Y escribir. O sea así:
     # archivo = open("Proveedores.csv", "r+t")
@@ -81,10 +81,10 @@ def listarProveedores():
 
     for linea in archivo:
         linea = linea.rstrip("\n")
-        lista = linea.split(",")
-        print(lista)
-        # if estado != "0":
-        #     print(CUIT + " - " + nombre)
+        CUIT, nombre, compras, estado = linea.split(",")
+
+        if estado != "0":
+            print(CUIT + " | " + nombre)
 
 
 def cargarCompras(CUIT):
