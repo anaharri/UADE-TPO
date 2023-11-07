@@ -28,7 +28,7 @@ def ingresarDatos():
     CUIT = input("Ingrese número de CUIT (sólo números y guiones): ")
     nombre = input("Ingrese nombre: ")
 
-    CUIT = CUIT.rjust(10, "0")
+    CUIT = CUIT.rjust(15, "0")
     nombre = nombre.ljust(25, " ")
 
     return CUIT, nombre
@@ -57,31 +57,82 @@ def registrarProveedor():
 
     if buscarRegistro(archivo, nuevoCUIT) == False:
         # las columnas del CSV son: CUIT, nombre, estado
-        nuevoRegistro = str(nuevoCUIT) + "|" + nuevoNombre + "|" + "1"
+        nuevoRegistro = str(nuevoCUIT) + "," + nuevoNombre + "," + "1"
         archivo.write(nuevoRegistro + "\n")
-        archivo.close()
         print("Nuevo proveedor registrado")
     else:
         print("El CUIT ingresado ya se encuentra registrado.")
+    archivo.close()
 
+#Borra un proveedor pasando por parametro el CUIT
+def borrarProveedor():
+    archivo = open("Proveedores.txt", "r+t")
+    CUIT = input("Ingrese el CUIT: ")
+    CUIT = CUIT.rjust(15, "0")
 
-def borrarProveedor(CUIT):
-    pass
+    posicionAnterior = 0
+    linea = archivo.readline()
+    registroEncontrado = False
 
+    while linea and not registroEncontrado:
+        cCUIT, cNombre, cEstado, cCompras = linea.split(",")
+        cCompras = cCompras.strip("\n")
+
+        if (CUIT == cCUIT and cEstado == "1"):
+            registroEncontrado = True
+            cLinea = cCUIT + "," + cNombre + ",0" + cCompras + "\n"
+
+        else:
+            posicionAnterior = archivo.tell()
+
+        linea = archivo.readline()
+
+    if registroEncontrado:
+        
+        archivo.seek(posicionAnterior)
+        archivo.write(cLinea)
+        print("Registro borrado correctamente")
+    
+    else:
+        print("Legajo no encontrado o dado de baja")
+    
+    archivo.close()
 
 def modificarProveedor():
-    # acá el archivo se tiene que abrir en modo "r+"
-    # para que te permita leer Y escribir. O sea así:
-    # archivo = open("Proveedores.csv", "r+t")
-    pass
+    archivo = open("Proveedores.csv", "r+t")
+    CUIT, nombre = ingresarDatos()
+    posicionAnterior = 0
+    linea = archivo.readline()
+    registroEncontrado = False
 
+    while linea and not registroEncontrado:
+        cCUIT, cNombre, cEstado, cCompras = linea.split(",")
+        cCompras = cCompras.strip("\n")
+        
+        if (CUIT == cCUIT and cEstado == "1"):
+            registroEncontrado = True
+            cLinea = cCUIT + "," + nombre + "," + cEstado + "," +cCompras + "\n"
+        
+        else:
+            posicionAnterior = archivo.tell()
+        linea = archivo.readline()
+    
+    if registroEncontrado:
+
+        archivo.seek(posicionAnterior)
+        archivo.write(cLinea)
+        print("Registro editado exitosamente")
+    else:
+        print("CUIT no encontrado o dado de baja")
+    
+    archivo.close()
 
 def listarProveedores():
     archivo = open("Proveedores.csv", "rt")
 
     for linea in archivo:
         linea = linea.rstrip("\n")
-        CUIT, nombre, compras, estado = linea.split(",")
+        CUIT, nombre, estado, compras = linea.split(",")
 
         if estado != "0":
             print(CUIT + " | " + nombre)
