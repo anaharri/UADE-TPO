@@ -131,15 +131,19 @@ def modificarProveedor():
 
 def listarProveedores():
     archivo = open("Proveedores.csv", "rt")
+    # archivo.seek(0)
+    dicCuits= {}
 
     print("Lista de proveedores:")
     for linea in archivo:
         linea = linea.rstrip("\n")
         estado, CUIT, nombre, *_ = linea.split(",")
-
         if estado == "1":
-            print(CUIT + " | " + nombre)
-
+            dicCuits.update({CUIT:nombre})
+    dicCuits = dict(sorted(dicCuits.items()))
+    for key, value in dicCuits.items():
+        print(key + " | " + value)
+    archivo.close()
 
 def cargarCompras(CUIT):
     pass
