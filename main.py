@@ -25,7 +25,7 @@ funciones = [
 
 # Tomar input del usuario
 def ingresarDatos():
-    CUIT = input("Ingrese número de CUIT (sólo números y guiones): ")
+    CUIT = input("Ingrese número de CUIT (sólo números): ")
     nombre = input("Ingrese nombre: ")
 
     CUIT = CUIT.strip().rjust(15, "0")
@@ -37,15 +37,20 @@ def ingresarDatos():
 # Buscar un registro en el archivo antes de guardar datos nuevos
 def buscarRegistro(archivo, CUIT):
     archivo.seek(0)
+
+    posicionAnterior = 0
     linea = archivo.readline()
     registroEncontrado = False
 
     while linea and not registroEncontrado:
-        estadoLeido, CUITleido, *rest = linea.split(",")
-        if CUITleido == CUIT and estadoLeido == "1":
+        estadoLeido, CUITleido, *_ = linea.split(",")
+        if estadoLeido == "1" and CUITleido == CUIT:
             registroEncontrado = True
+            return posicionAnterior
         else:
-            linea = archivo.readline()
+            posicionAnterior = archivo.tell()
+
+        linea = archivo.readline()
 
     return registroEncontrado
 
@@ -56,9 +61,9 @@ def registrarProveedor():
     archivo = open("Proveedores.csv", "a+t")
 
     if buscarRegistro(archivo, nuevoCUIT) == False:
-        # las columnas del CSV son: CUIT, nombre, estado
-        nuevoRegistro = f"1,{nuevoCUIT},{nuevoNombre},\n"
-        archivo.write(nuevoRegistro)
+        # las columnas del CSV son: estado, CUIT, nombre
+        nuevoRegistro = "1" + "," + nuevoCUIT + "," + nuevoNombre
+        archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
         print("Nuevo proveedor registrado")
     else:
         print("El CUIT ingresado ya se encuentra registrado.")
@@ -145,8 +150,32 @@ def listarProveedores():
         print(key + " | " + value)
     archivo.close()
 
-def cargarCompras(CUIT):
-    pass
+def cargarCompras():
+    archivo = open("Proveedores.csv", "r+t")
+    CUIT = input("Ingrese número de CUIT (sólo números): ")
+    posicionRegistro = buscarRegistro(archivo, CUIT)
+
+    while posicionRegistro is False and CUIT != -1:
+        print("CUIT no encontrado o dado de baja")
+        CUIT = input("Ingrese número de CUIT (sólo números): ")
+        posicionRegistro = buscarRegistro(archivo, CUIT)
+
+    if CUIT == -1:
+        return
+
+    compra = input(
+        "Ingrese el monto de la compra del proveedor " + CUIT + " (sólo números): $"
+    )
+
+    archivo.seek(posicionRegistro)
+    registro = archivo.readline()
+    registro = registro.rstrip() + "," + compra
+    registro = registro.ljust(200, " ") + "\n"
+    archivo.seek(posicionRegistro)
+    archivo.write(registro)
+
+    print("Compra registrada exitosamente")
+    archivo.close()
 
 
 def listarComprasProveedor():
@@ -184,3 +213,18 @@ def main():
 
 
 main()
+
+
+def debug():
+    archivo = open("Proveedores.csv", "r+t")
+    retorno = buscarRegistro(archivo, "000000012241210")
+    print(retorno)
+
+    if retorno is not False:
+        print("Esto así funciona")
+    else:
+        print("El cero es == False")
+    archivo.close()
+
+
+# debug()
