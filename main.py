@@ -114,7 +114,7 @@ def modificarProveedor():
 
     while linea and not registroEncontrado:
         cEstado, cCUIT, cNombre, *cCompras = linea.split(",")
-        cCompras= cCompras[-1].strip("\n")
+        cCompras = cCompras[-1].strip("\n")
 
         if CUIT == cCUIT and cEstado == "1":
             registroEncontrado = True
@@ -136,19 +136,21 @@ def modificarProveedor():
 
 def listarProveedores():
     archivo = open("Proveedores.csv", "rt")
-    # archivo.seek(0)
-    dicCuits= {}
+    dicCuits = {}
 
     print("Lista de proveedores:")
     for linea in archivo:
         linea = linea.rstrip("\n")
         estado, CUIT, nombre, *_ = linea.split(",")
         if estado == "1":
-            dicCuits.update({CUIT:nombre})
+            dicCuits.update({CUIT: nombre})
     dicCuits = dict(sorted(dicCuits.items()))
+
     for key, value in dicCuits.items():
         print(key + " | " + value)
+
     archivo.close()
+
 
 def cargarCompras():
     archivo = open("Proveedores.csv", "r+t")
@@ -179,7 +181,29 @@ def cargarCompras():
 
 
 def listarComprasProveedor():
-    pass
+    archivo = open("Proveedores.csv", "r+t")
+    diccionarioDeProveedores = {}
+
+    for linea in archivo:
+        linea = linea.rstrip("\n")
+        estado, CUIT, nombre, *compras = linea.split(",")
+        if estado == "1":
+            diccionarioDeProveedores[CUIT.lstrip("0")] = {
+                "nombre": nombre.rstrip(),
+                "compras": compras,
+            }
+
+    diccionarioDeProveedores = dict(sorted(diccionarioDeProveedores.items()))
+
+    # print(diccionarioDeProveedores)
+    for CUIT in diccionarioDeProveedores:
+        print(CUIT + " | " + diccionarioDeProveedores[CUIT]["nombre"])
+        print("Monto de las compras:")
+        for compra in diccionarioDeProveedores[CUIT]["compras"]:
+            print(compra.strip())
+        print()
+
+    archivo.close()
 
 
 def editarMonto(CUIT, claveDeCompra):
