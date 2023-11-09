@@ -204,6 +204,7 @@ def listarComprasProveedor():
 
     archivo.close()
 
+
 # Impresentable este código pero bue lo subo así y después le metemos refactor furioso
 def editarMonto():
     diccionarioDeCompras = {}
@@ -246,9 +247,37 @@ def editarMonto():
     archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
     archivo.close()
 
-
+# idem punto anterior, el código es feo pero cumple su función
 def listarProveedoresConMayoresCompras():
-    pass
+    archivo = open("Proveedores.csv", "r+t")
+    diccionarioDeProveedores = {}
+    compraMaxima = 0
+
+    for linea in archivo:
+        linea = linea.rstrip("\n")
+        estado, CUIT, nombre, *compras = linea.split(",")
+        totalDeCompras = 0
+
+        if estado == "1":
+            for compra in compras:
+                totalDeCompras += int(compra.strip())
+
+            if totalDeCompras > compraMaxima:
+                compraMaxima = totalDeCompras
+
+            diccionarioDeProveedores[CUIT.lstrip("0")] = {
+                "nombre": nombre.rstrip(),
+                "totalDeCompras": totalDeCompras,
+            }
+
+    print("Compra máxima: " + str(compraMaxima))
+    for CUIT in diccionarioDeProveedores:
+        if diccionarioDeProveedores[CUIT]["totalDeCompras"] == compraMaxima:
+            print(
+                f"{CUIT} | {diccionarioDeProveedores[CUIT]['nombre']} | Suma de compras: {compraMaxima}"
+            )
+
+    archivo.close()
 
 
 def mostrarMenu(menu):
@@ -257,7 +286,7 @@ def mostrarMenu(menu):
 
     userInput = int(input("\nIngrese el número de opción: "))
 
-    while userInput < 0 or userInput >= len(menu):
+    while userInput < 0 or userInput > len(menu):
         print("Opción inválida")
         userInput = int(input("\nIngrese el número de opción: "))
 
@@ -274,18 +303,3 @@ def main():
 
 
 main()
-
-
-def debug():
-    archivo = open("Proveedores.csv", "r+t")
-    retorno = buscarRegistro(archivo, "000000012241210")
-    print(retorno)
-
-    if retorno is not False:
-        print("Esto así funciona")
-    else:
-        print("El cero es == False")
-    archivo.close()
-
-
-# debug()
