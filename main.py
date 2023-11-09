@@ -195,19 +195,56 @@ def listarComprasProveedor():
 
     diccionarioDeProveedores = dict(sorted(diccionarioDeProveedores.items()))
 
-    # print(diccionarioDeProveedores)
     for CUIT in diccionarioDeProveedores:
         print(CUIT + " | " + diccionarioDeProveedores[CUIT]["nombre"])
         print("Monto de las compras:")
         for compra in diccionarioDeProveedores[CUIT]["compras"]:
-            print(compra.strip())
+            print(compra.rstrip(" "))
         print()
 
     archivo.close()
 
+# Impresentable este código pero bue lo subo así y después le metemos refactor furioso
+def editarMonto():
+    diccionarioDeCompras = {}
 
-def editarMonto(CUIT, claveDeCompra):
-    pass
+    archivo = open("Proveedores.csv", "r+t")
+    CUIT = input("Ingrese el CUIT: ")
+    indiceRegistro = buscarRegistro(archivo, CUIT)
+
+    if indiceRegistro is False:
+        print("Proveedor no encontrado")
+        return
+
+    archivo.seek(indiceRegistro)
+    estado, CUIT, nombre, *compras = archivo.readline().split(",")
+
+    for i in range(len(compras)):
+        diccionarioDeCompras[i + 1] = compras.pop(0).strip()
+        print(str(i + 1) + ": " + diccionarioDeCompras[i + 1])
+
+    indiceDeCompra = int(
+        input("Ingrese el número de compra que desea modificar, o 0 para terminar: ")
+    )
+
+    while indiceDeCompra:
+        nuevoMonto = input(f"Ingrese nuevo monto para la compra {indiceDeCompra}: ")
+        diccionarioDeCompras[indiceDeCompra] = nuevoMonto
+        print("\nCompra modificada exitosamente.\n")
+        indiceDeCompra = int(
+            input(
+                "Ingrese el número de compra que desea modificar, o 0 para terminar: "
+            )
+        )
+
+    nuevoRegistro = f"{estado},{CUIT},{nombre}"
+
+    for i in diccionarioDeCompras:
+        nuevoRegistro = nuevoRegistro + "," + diccionarioDeCompras[i]
+
+    archivo.seek(indiceRegistro)
+    archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
+    archivo.close()
 
 
 def listarProveedoresConMayoresCompras():
