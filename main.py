@@ -351,7 +351,7 @@ def editarMonto():
             return
 
         archivo.seek(indiceRegistro)
-        estado, CUIT, nombre, *compras = archivo.readline().split()
+        estado, CUIT, nombre, *compras = archivo.readline().split(",")
 
         for i, compra in enumerate(compras, start=1):
             diccionarioDeCompras[i] = compra.strip()
