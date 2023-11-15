@@ -19,9 +19,6 @@ funciones = [
     "listarProveedoresConMayoresCompras",
 ]
 
-# POR AHORA NADA TIENE VALIDACIONES NI MANEJO DE EXCEPCIONES
-# Solamente definí el menú, la función main, y la función de alta (con un par de funciones auxiliares). Más adelante podemos dedicar un ratito a modularizar todo
-
 
 # Tomar input del usuario
 def ingresarDatos():
@@ -62,7 +59,7 @@ def buscarRegistro(archivo, CUIT):
     try:
         archivo.seek(0)
 
-        posicionAnterior = 0
+        posicionAnterior = 0 #-1
         linea = archivo.readline()
         registroEncontrado = False
 
@@ -76,7 +73,7 @@ def buscarRegistro(archivo, CUIT):
 
             linea = archivo.readline()
 
-        return registroEncontrado
+        return registroEncontrado#,posicionanterior
 
     except Exception as e:
         print(f"Error al buscar el registro: {e}")
@@ -92,9 +89,9 @@ def registrarProveedor():
         archivo = open("Proveedores.csv", "a+t")
 
         try:
-            if buscarRegistro(archivo, nuevoCUIT) == False:
+            if buscarRegistro(archivo, nuevoCUIT) == False: #==-1:
                 # las columnas del CSV son: estado, CUIT, nombre
-                nuevoRegistro = "1" + "," + nuevoCUIT + "," + nuevoNombre
+                nuevoRegistro = "1" + "," + nuevoCUIT + "," + nuevoNombre + ","
                 archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
                 print("Nuevo proveedor registrado")
             else:
@@ -138,12 +135,11 @@ def borrarProveedor():
         registroEncontrado = False
 
         while linea and not registroEncontrado:
-            cEstado, cCUIT, cNombre, *cCompras = linea.split(",")
-            cCompras = cCompras[-1].strip("\n")
+            cEstado, cCUIT, *resto = linea.split(",")
 
             if CUIT == cCUIT and cEstado == "1":
                 registroEncontrado = True
-                cLinea = f"0,{cCUIT},{cNombre},{cCompras}\n"
+                cLinea = f"0,{cCUIT},{','.join(resto)}"
 
             else:
                 posicionAnterior = archivo.tell()
@@ -182,12 +178,11 @@ def modificarProveedor():
         registroEncontrado = False
 
         while linea and not registroEncontrado:
-            cEstado, cCUIT, cNombre, *cCompras = linea.split(",")
-            cCompras = cCompras[-1].strip("\n")
+            cEstado, cCUIT, _, *compras = linea.split(",")
 
             if CUIT == cCUIT and cEstado == "1":
                 registroEncontrado = True
-                cLinea = f"{cEstado},{cCUIT},{nombre},{cCompras}\n"
+                cLinea = f"1,{cCUIT},{nombre},{','.join(compras)}"
 
             else:
                 posicionAnterior = archivo.tell()
@@ -265,6 +260,7 @@ def cargarCompras():
 
         if CUIT == "-1":
             return
+        #devolver 1 solo return, englobar lo de abajo en el if
 
         compra = input(f"Ingrese el monto de la compra del proveedor {CUIT} (sólo números): $")
         # Aserciones para validar el formato del monto de la compra
@@ -313,8 +309,12 @@ def listarComprasProveedor():
 
         diccionarioDeProveedores = dict(sorted(diccionarioDeProveedores.items()))
 
+        print("Listado de compras por proveedor:")
+        print()
+
         for CUIT in diccionarioDeProveedores:
-            print(f"{CUIT} | {diccionarioDeProveedores[CUIT]['nombre']}")
+            print(f"{'CUIT'.ljust(15, ' ')} | Nombre")
+            print(f"{CUIT.rjust(15, '0')} | {diccionarioDeProveedores[CUIT]['nombre']}")
             print("Monto de las compras:")
             for compra in diccionarioDeProveedores[CUIT]["compras"]:
                 print(compra.rstrip(" "))
@@ -474,7 +474,7 @@ def mostrarMenu(menu):
     except Exception as e:
         print(f"Error desconocido: {e}")
         return mostrarMenu(menu)
-
+#Si arroja una excepcion que lo retorne y lo manejamos en main
 
 def main():
     try:
