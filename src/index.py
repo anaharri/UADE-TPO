@@ -137,17 +137,19 @@ def cargarCompras():
 
         posicionRegistro = buscarRegistro(archivo, CUIT)
 
-        while posicionRegistro is False and CUIT != "-1":
+        while posicionRegistro == -1 and CUIT != "-1":
             print("CUIT no encontrado o dado de baja")
             CUIT = input("Ingrese número de CUIT (sólo números): ")
+
             # Aserciones para validar el formato del CUIT
             assert CUIT.isdigit(), "El CUIT debe contener solo números."
             assert len(CUIT) <= 15, "El CUIT no puede superar los 15 dígitos."
+
             posicionRegistro = buscarRegistro(archivo, CUIT)
 
         if CUIT != "-1":
             compra = input(
-                f"Ingrese el monto de la compra del proveedor {CUIT} (sólo números): $"
+                f"Ingrese el monto de la compra del proveedor {CUIT.lstrip('0')} (sólo números): $"
             )
             # Aserciones para validar el formato del monto de la compra
             assert compra.isdigit(), "El monto de la compra debe contener solo números."
@@ -157,8 +159,7 @@ def cargarCompras():
 
             archivo.seek(posicionRegistro)
             registro = archivo.readline()
-            registro = registro.rstrip() + "," + compra
-            registro = registro.ljust(200, " ") + "\n"
+            registro = f"{registro.rstrip()}{compra},".ljust(200, " ") + "\n"
             archivo.seek(posicionRegistro)
             archivo.write(registro)
 
@@ -185,9 +186,10 @@ def listarComprasProveedor():
 
         for linea in archivo:
             try:
-                linea = linea.rstrip("\n")
-                estado, CUIT, nombre, *compras = linea.split(",")
+                estado, CUIT, nombre, *compras = linea.rstrip().split(",")
                 if estado == "1":
+                    if len(compras[0]) == 0:
+                        compras = []
                     diccionarioDeProveedores[CUIT.lstrip("0")] = {
                         "nombre": nombre.rstrip(),
                         "compras": compras,
@@ -202,13 +204,15 @@ def listarComprasProveedor():
         print()
 
         for CUIT in diccionarioDeProveedores:
-            print(f"{'CUIT'.ljust(15, ' ')} | Nombre")
-            print(
-                f"{CUIT.rjust(15, '0')} | {diccionarioDeProveedores[CUIT]['nombre']}")
-            print("Monto de las compras:")
-            for compra in diccionarioDeProveedores[CUIT]["compras"]:
-                print(compra.rstrip(" "))
-            print()
+            if len(diccionarioDeProveedores[CUIT]["compras"]):
+                print(f"{'CUIT'.ljust(15, ' ')} | Nombre")
+                print(
+                    f"{CUIT.ljust(15, ' ')} | {diccionarioDeProveedores[CUIT]['nombre']}")
+                print("".ljust(40, "-"))
+                print("Monto de las compras:")
+                for compra in diccionarioDeProveedores[CUIT]["compras"]:
+                    print(compra.rstrip(" "))
+                print()
 
     except FileNotFoundError as fnfe:
         print(f"Error: Archivo no encontrado: {fnfe}")
@@ -218,7 +222,6 @@ def listarComprasProveedor():
         print(f"Error desconocido al listar compras de proveedores: {e}")
 
     finally:
-        archivo.seek(0)
         archivo.close()
 
 
@@ -236,12 +239,14 @@ def editarMonto():
 
         indiceRegistro = buscarRegistro(archivo, CUIT)
 
-        if indiceRegistro is False:
+        # esto es polémico pero ya no llegamos a cambiarlo
+        if indiceRegistro == -1:
             print("Proveedor no encontrado")
             return
 
         archivo.seek(indiceRegistro)
         estado, CUIT, nombre, *compras = archivo.readline().split(",")
+        compras = compras[:-1]
 
         for i, compra in enumerate(compras, start=1):
             diccionarioDeCompras[i] = compra.strip()
@@ -269,13 +274,13 @@ def editarMonto():
 
         while indiceDeCompra:
             try:
-                nuevoMonto = float(
+                nuevoMonto = int(
                     input(
                         f"Ingrese nuevo monto para la compra {indiceDeCompra}: ")
                 )
                 assert nuevoMonto >= 0, "El monto debe ser mayor o igual a cero."
 
-                diccionarioDeCompras[indiceDeCompra] = nuevoMonto
+                diccionarioDeCompras[indiceDeCompra] = str(round(nuevoMonto))
                 print("\nCompra modificada exitosamente.\n")
             except ValueError:
                 print("Por favor, ingrese un número válido.")
@@ -288,10 +293,10 @@ def editarMonto():
                 )
             )
 
-        nuevoRegistro = f"{estado},{CUIT},{nombre}"
+        nuevoRegistro = f"{estado},{CUIT},{nombre},"
 
         for i in diccionarioDeCompras:
-            nuevoRegistro += f",{diccionarioDeCompras[i]}"
+            nuevoRegistro += f"{diccionarioDeCompras[i]},"
 
         archivo.seek(indiceRegistro)
         archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
