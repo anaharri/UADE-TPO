@@ -27,10 +27,11 @@ def ingresarDatos():
 
     while not validacionExitosa:
         try:
-            cuit = input("Ingrese número de CUIT (sólo números, máximo 15 dígitos): ")
-            cuit = cuit.strip().rjust(15, "0")
+            CUIT = input(
+                "Ingrese número de CUIT (sólo números, máximo 15 dígitos): ")
+            CUIT = CUIT.strip().rjust(15, "0")
 
-            if not cuit.isdigit() or len(cuit) > 15:
+            if not CUIT.isdigit() or len(CUIT) > 15:
                 raise ValueError(
                     "El CUIT debe contener solo números y tener como máximo 15 dígitos."
                 )
@@ -56,7 +57,7 @@ def ingresarDatos():
         except ValueError as e:
             print(f"Error: {e}. Intente nuevamente.")
 
-    return cuit, nombre
+    return CUIT, nombre
 
 
 # Función auxiliar
@@ -64,8 +65,7 @@ def ingresarDatos():
 def buscarRegistro(archivo, CUIT):
     try:
         archivo.seek(0)
-
-        posicionAnterior = -1
+        posicionAnterior = 0
         linea = archivo.readline()
         registroEncontrado = False
 
@@ -74,9 +74,13 @@ def buscarRegistro(archivo, CUIT):
 
             if estadoLeido == "1" and CUITleido.lstrip("0") == CUIT.lstrip("0"):
                 registroEncontrado = True
+            else:
+                posicionAnterior = archivo.tell()
 
-            posicionAnterior = archivo.tell()
             linea = archivo.readline()
+
+        if registroEncontrado is False:
+            posicionAnterior = -1
 
         return posicionAnterior
 
@@ -91,8 +95,8 @@ def borradoLogico(archivo, posicion):
         archivo.seek(posicion)
         registro = archivo.readline()
 
-        campos = registro.split(",")[1,]
-        registro = f"0,{','.join(campos)}"
+        campos = registro.split(",")
+        registro = f"0{','.join(campos)[1:]}"
 
         archivo.seek(posicion)
         archivo.write(registro)
@@ -289,14 +293,16 @@ def listarComprasProveedor():
             except ValueError as ve:
                 print(f"Error al procesar línea: {ve}")
 
-        diccionarioDeProveedores = dict(sorted(diccionarioDeProveedores.items()))
+        diccionarioDeProveedores = dict(
+            sorted(diccionarioDeProveedores.items()))
 
         print("Listado de compras por proveedor:")
         print()
 
         for CUIT in diccionarioDeProveedores:
             print(f"{'CUIT'.ljust(15, ' ')} | Nombre")
-            print(f"{CUIT.rjust(15, '0')} | {diccionarioDeProveedores[CUIT]['nombre']}")
+            print(
+                f"{CUIT.rjust(15, '0')} | {diccionarioDeProveedores[CUIT]['nombre']}")
             print("Monto de las compras:")
             for compra in diccionarioDeProveedores[CUIT]["compras"]:
                 print(compra.rstrip(" "))
@@ -362,7 +368,8 @@ def editarMonto():
         while indiceDeCompra:
             try:
                 nuevoMonto = float(
-                    input(f"Ingrese nuevo monto para la compra {indiceDeCompra}: ")
+                    input(
+                        f"Ingrese nuevo monto para la compra {indiceDeCompra}: ")
                 )
                 assert nuevoMonto >= 0, "El monto debe ser mayor o igual a cero."
 
@@ -446,7 +453,8 @@ def listarProveedoresConMayoresCompras():
     except OSError as ose:
         print(f"Error de lectura/escritura en el archivo: {ose}")
     except Exception as e:
-        print(f"Error desconocido al listar proveedores con mayores compras: {e}")
+        print(
+            f"Error desconocido al listar proveedores con mayores compras: {e}")
 
     finally:
         archivo.close()
@@ -490,3 +498,12 @@ def main():
 
 
 main()
+
+
+def debug():
+    archivo = open("Proveedores.csv", "r")
+    print(buscarRegistro(archivo, "000000000001234"))
+    archivo.close()
+
+
+# debug()
