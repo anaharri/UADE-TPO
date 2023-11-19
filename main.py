@@ -20,6 +20,7 @@ funciones = [
 ]
 
 
+# Función auxiliar
 # Tomar input del usuario
 def ingresarDatos():
     validacionExitosa = False
@@ -28,23 +29,27 @@ def ingresarDatos():
         try:
             cuit = input("Ingrese número de CUIT (sólo números, máximo 15 dígitos): ")
             cuit = cuit.strip().rjust(15, "0")
+
             if not cuit.isdigit() or len(cuit) > 15:
-                raise ValueError("El CUIT debe contener solo números y tener como máximo 15 dígitos.")
+                raise ValueError(
+                    "El CUIT debe contener solo números y tener como máximo 15 dígitos."
+                )
 
-            nombreOriginal = input("Ingrese nombre (solo letras o espacios, máximo 25 caracteres): ")
-            
+            nombreIngresado = input(
+                "Ingrese nombre (solo letras y espacios, máximo 25 caracteres): "
+            )
+
             # Eliminar espacios adicionales y reemplazar múltiples espacios con uno solo
-            nombreLimpiado = ' '.join(nombreOriginal.split())
-
-            # Almacenar el valor limpiado
-            nombreGuardado = nombreLimpiado
+            nombre = " ".join(nombreIngresado.split())
 
             # Verificar que los caracteres son alfabéticos y no se pasa de 25 caracteres
-            if not nombreLimpiado.replace(" ", "").isalpha() or len(nombreLimpiado) > 25:
-                raise ValueError("El nombre debe contener solo letras o espacios y tener como máximo 25 caracteres.")
+            if not nombre.replace(" ", "").isalpha() or len(nombre) > 25:
+                raise ValueError(
+                    "El nombre debe contener solo letras y espacios y tener como máximo 25 caracteres."
+                )
 
             # Restaurar el valor original
-            nombre = nombreGuardado.strip().ljust(25, " ")
+            nombre = nombre.strip().ljust(25, " ")
 
             validacionExitosa = True
 
@@ -54,66 +59,68 @@ def ingresarDatos():
     return cuit, nombre
 
 
+# Función auxiliar
 # Buscar un registro en el archivo antes de guardar datos nuevos
 def buscarRegistro(archivo, CUIT):
     try:
         archivo.seek(0)
 
-        posicionAnterior = 0 #-1
+        posicionAnterior = -1
         linea = archivo.readline()
         registroEncontrado = False
 
         while linea and not registroEncontrado:
             estadoLeido, CUITleido, *_ = linea.split(",")
-            if estadoLeido == "1" and CUITleido.lstrip('0') == CUIT.lstrip('0'):
-                registroEncontrado = True
-                return posicionAnterior
-            else:
-                posicionAnterior = archivo.tell()
 
+            if estadoLeido == "1" and CUITleido.lstrip("0") == CUIT.lstrip("0"):
+                registroEncontrado = True
+
+            posicionAnterior = archivo.tell()
             linea = archivo.readline()
 
-        return registroEncontrado#,posicionanterior
+        return posicionAnterior
 
     except Exception as e:
         print(f"Error al buscar el registro: {e}")
         return False
 
 
+# Función auxiliar
+def borradoLogico(archivo, posicion):
+    try:
+        archivo.seek(posicion)
+        registro = archivo.readline()
+
+        campos = registro.split(",")[1,]
+        registro = f"0,{','.join(campos)}"
+
+        archivo.seek(posicion)
+        archivo.write(registro)
+
+    except Exception as e:
+        return e
+
 
 # Guardar nuevo proveedor
 def registrarProveedor():
     try:
         nuevoCUIT, nuevoNombre = ingresarDatos()
-
         archivo = open("Proveedores.csv", "a+t")
 
-        try:
-            if buscarRegistro(archivo, nuevoCUIT) == False: #==-1:
-                # las columnas del CSV son: estado, CUIT, nombre
-                nuevoRegistro = "1" + "," + nuevoCUIT + "," + nuevoNombre + ","
-                archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
-                print("Nuevo proveedor registrado")
-            else:
-                print("El CUIT ingresado ya se encuentra registrado.")
-
-        except OSError as ose:
-            print(f"Error de escritura en el archivo: {ose}")
-            # Puedes manejar esta excepción de manera específica, según tus necesidades
-        except Exception as e:
-            print(f"Error desconocido al registrar el proveedor: {e}")
-
-        finally:
-            archivo.close()
+        if buscarRegistro(archivo, nuevoCUIT) == -1:
+            nuevoRegistro = "1" + "," + nuevoCUIT + "," + nuevoNombre + ","
+            archivo.write(nuevoRegistro.ljust(200, " ") + "\n")
+            print("Nuevo proveedor registrado")
+        else:
+            print("El CUIT ingresado ya se encuentra registrado.")
 
     except FileNotFoundError as fnfe:
         print(f"Error: Archivo no encontrado: {fnfe}")
     except OSError as ose:
         print(f"Error al abrir el archivo: {ose}")
-        # Puedes manejar esta excepción de manera específica, según tus necesidades
     except Exception as e:
         print(f"Error desconocido al registrar el proveedor: {e}")
-    
+
     finally:
         archivo.close()
 
@@ -130,27 +137,11 @@ def borrarProveedor():
 
         CUIT = CUIT.rjust(15, "0")
 
-        posicionAnterior = 0
-        linea = archivo.readline()
-        registroEncontrado = False
+        posicionRegistro = buscarRegistro(archivo, CUIT)
 
-        while linea and not registroEncontrado:
-            cEstado, cCUIT, *resto = linea.split(",")
-
-            if CUIT == cCUIT and cEstado == "1":
-                registroEncontrado = True
-                cLinea = f"0,{cCUIT},{','.join(resto)}"
-
-            else:
-                posicionAnterior = archivo.tell()
-
-            linea = archivo.readline()
-
-        if registroEncontrado:
-            archivo.seek(posicionAnterior)
-            archivo.write(cLinea)
+        if posicionRegistro != -1:
+            borradoLogico(archivo, posicionRegistro)
             print("Registro borrado correctamente")
-
         else:
             print("Legajo no encontrado o dado de baja")
 
@@ -172,29 +163,19 @@ def modificarProveedor():
     try:
         archivo = open("Proveedores.csv", "r+t")
         CUIT, nombre = ingresarDatos()
+        posicionRegistro = buscarRegistro(archivo, CUIT)
 
-        posicionAnterior = 0
-        linea = archivo.readline()
-        registroEncontrado = False
-
-        while linea and not registroEncontrado:
-            cEstado, cCUIT, _, *compras = linea.split(",")
-
-            if CUIT == cCUIT and cEstado == "1":
-                registroEncontrado = True
-                cLinea = f"1,{cCUIT},{nombre},{','.join(compras)}"
-
-            else:
-                posicionAnterior = archivo.tell()
-
-            linea = archivo.readline()
-
-        if registroEncontrado:
-            archivo.seek(posicionAnterior)
-            archivo.write(cLinea)
-            print("Registro editado exitosamente")
-        else:
+        if posicionRegistro == -1:
             print("CUIT no encontrado o dado de baja")
+        else:
+            archivo.seek(posicionRegistro)
+            registro = archivo.readline()
+
+            compras = registro.split(",")[3,]
+            registroActualizado = f"1,{CUIT},{nombre},{','.join(compras)}"
+            archivo.write(registroActualizado)
+
+            print("Registro editado exitosamente")
 
     except FileNotFoundError as fnfe:
         print(f"Error: Archivo no encontrado: {fnfe}")
@@ -258,23 +239,24 @@ def cargarCompras():
             assert len(CUIT) <= 15, "El CUIT no puede superar los 15 dígitos."
             posicionRegistro = buscarRegistro(archivo, CUIT)
 
-        if CUIT == "-1":
-            return
-        #devolver 1 solo return, englobar lo de abajo en el if
+        if CUIT != "-1":
+            compra = input(
+                f"Ingrese el monto de la compra del proveedor {CUIT} (sólo números): $"
+            )
+            # Aserciones para validar el formato del monto de la compra
+            assert compra.isdigit(), "El monto de la compra debe contener solo números."
+            assert (
+                "." not in compra
+            ), "El monto de la compra no debe contener decimales."
 
-        compra = input(f"Ingrese el monto de la compra del proveedor {CUIT} (sólo números): $")
-        # Aserciones para validar el formato del monto de la compra
-        assert compra.isdigit(), "El monto de la compra debe contener solo números."
-        assert "." not in compra, "El monto de la compra no debe contener decimales."
+            archivo.seek(posicionRegistro)
+            registro = archivo.readline()
+            registro = registro.rstrip() + "," + compra
+            registro = registro.ljust(200, " ") + "\n"
+            archivo.seek(posicionRegistro)
+            archivo.write(registro)
 
-        archivo.seek(posicionRegistro)
-        registro = archivo.readline()
-        registro = registro.rstrip() + "," + compra
-        registro = registro.ljust(200, " ") + "\n"
-        archivo.seek(posicionRegistro)
-        archivo.write(registro)
-
-        print("Compra registrada exitosamente")
+            print("Compra registrada exitosamente")
 
     except AssertionError as ae:
         print(f"Error de validación: {ae}")
@@ -284,12 +266,12 @@ def cargarCompras():
         print(f"Error de lectura/escritura en el archivo: {ose}")
     except Exception as e:
         print(f"Error desconocido al cargar compras: {e}")
-    
+
     finally:
         archivo.close()
 
 
-#Lista una por una las compras del proveedor
+# Lista una por una las compras del proveedor
 def listarComprasProveedor():
     try:
         archivo = open("Proveedores.csv", "rt")
@@ -339,7 +321,7 @@ def editarMonto():
         archivo = open("Proveedores.csv", "r+t")
 
         CUIT = input("Ingrese el CUIT: ")
-        
+
         # Asegúrate de que el CUIT sea válido
         assert CUIT.isdigit(), "El CUIT debe contener solo números."
         assert len(CUIT) <= 15, "El CUIT no puede superar los 15 dígitos."
@@ -357,21 +339,33 @@ def editarMonto():
             diccionarioDeCompras[i] = compra.strip()
             print(f"{i}: {diccionarioDeCompras[i]}")
 
-        indiceDeCompra = int(input("Ingrese el número de compra que desea modificar, o 0 para terminar: "))
+        indiceDeCompra = int(
+            input(
+                "Ingrese el número de compra que desea modificar, o 0 para terminar: "
+            )
+        )
 
         # Verifica que el indice de compra este en el diccionario y sea valida
         while indiceDeCompra and indiceDeCompra not in diccionarioDeCompras:
-            print("Índice de compra no válido. Por favor, ingrese un número de compra existente.")
+            print(
+                "Índice de compra no válido. Por favor, ingrese un número de compra existente."
+            )
             try:
-                indiceDeCompra = int(input("Ingrese el número de compra que desea modificar, o 0 para terminar: "))
+                indiceDeCompra = int(
+                    input(
+                        "Ingrese el número de compra que desea modificar, o 0 para terminar: "
+                    )
+                )
             except ValueError:
                 print("Por favor, ingrese un número válido.")
 
         while indiceDeCompra:
             try:
-                nuevoMonto = float(input(f"Ingrese nuevo monto para la compra {indiceDeCompra}: "))
+                nuevoMonto = float(
+                    input(f"Ingrese nuevo monto para la compra {indiceDeCompra}: ")
+                )
                 assert nuevoMonto >= 0, "El monto debe ser mayor o igual a cero."
-                
+
                 diccionarioDeCompras[indiceDeCompra] = nuevoMonto
                 print("\nCompra modificada exitosamente.\n")
             except ValueError:
@@ -379,7 +373,11 @@ def editarMonto():
             except AssertionError as ae:
                 print(f"Error de validación: {ae}")
 
-            indiceDeCompra = int(input("Ingrese el número de compra que desea modificar, o 0 para terminar: "))
+            indiceDeCompra = int(
+                input(
+                    "Ingrese el número de compra que desea modificar, o 0 para terminar: "
+                )
+            )
 
         nuevoRegistro = f"{estado},{CUIT},{nombre}"
 
@@ -451,7 +449,6 @@ def listarProveedoresConMayoresCompras():
         print(f"Error desconocido al listar proveedores con mayores compras: {e}")
 
     finally:
-        archivo.seek(0)  # Restablece la posición del cursor al principio del archivo
         archivo.close()
 
 
@@ -468,13 +465,9 @@ def mostrarMenu(menu):
 
         return userInput
 
-    except ValueError:
-        print("Error: Ingrese un número válido.")
-        return mostrarMenu(menu)
     except Exception as e:
-        print(f"Error desconocido: {e}")
-        return mostrarMenu(menu)
-#Si arroja una excepcion que lo retorne y lo manejamos en main
+        return e
+
 
 def main():
     try:
@@ -494,5 +487,6 @@ def main():
     except Exception as e:
         print(f"Error desconocido: {e}")
         main()
+
 
 main()
