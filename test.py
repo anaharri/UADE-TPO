@@ -1,1 +1,0 @@
-print(f"hola que tal {','.join(['       '])}\n")
