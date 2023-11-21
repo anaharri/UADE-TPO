@@ -60,12 +60,3 @@ def main():
 
 
 main()
-
-
-def debug():
-    archivo = open("Proveedores.csv", "r")
-    print(buscarRegistro(archivo, "000000000001234"))
-    archivo.close()
-
-
-# debug()
